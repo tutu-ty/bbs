@@ -6,12 +6,15 @@ import com.foreverything.bbs.service.RewardService;
 import com.foreverything.bbs.service.TopicService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 /**
  * @ClassName RewardController
@@ -35,48 +38,40 @@ public class RewardController {
     }
 
   //发布新悬赏
-    @PostMapping("/reward")
-    public ModelAndView createNewReward(Reward reward, HttpServletRequest request){
-        ModelAndView mv=new ModelAndView();
-        if (reward.getTitle().trim().length()==0||reward.getContent().trim().length()==0){
-            mv.addObject("msg","请填写完整");
-            System.out.println("内容错误");
-            mv.setViewName("newRewardPage");
+    @PostMapping("/add/reward")
+    public String createNewReward(Reward reward, HttpServletRequest request, Model model){
+        if (null==reward.getTitle()||null==reward.getContent()){
+            model.addAttribute("message","信息不完整");
+            return "nweRewardPage";
         }else if(!rewardService.isEnough(reward.getPoints(), (Integer) request.getSession().getAttribute("userID"))) {
-            mv.addObject("msg","积分不够");
-            mv.setViewName("newRewardPage");
+            model.addAttribute("message","您的积分不足");
+            return "newRewardPage";//积分不够
         }else{
-                Long id=rewardService.insertReward(reward);
-                if (id>0){
-                    mv.addObject("msg","发布成功");
-                    mv.addObject("newReward",rewardService.getRewardByID(id));
-                    System.out.println("跳转到讨悬赏页面");
-                    mv.setViewName("rewardPage");
-                }else{
-                    mv.addObject("msg","创建失败");
-                    System.out.println("跳转到帖子页面");
-                    mv.setViewName("newRewardPage");
-                }
+            Long id=rewardService.insertReward(reward);
+            if (id>0){
+                model.addAttribute("message","发布成功");
+                return "redirect:/reward";
+            }else{
+                model.addAttribute("message","发布失败，请重新登录`");
+                return "nweRewardPage";
             }
-
-        //mv.setViewName("topicPage");
-        return mv;
+        }
     }
 
-    @PutMapping("/reward")
+    @PutMapping("/update/reward")
     public ModelAndView updateReward(Reward reward){
         ModelAndView mv=new ModelAndView();
         if (null==reward.getContent()||null==reward.getTitle()){
-            mv.addObject("msg","标题或内容为空！");
+            mv.addObject("message","标题或内容为空！");
 
 //            TODO 跳转到原修改帖子界面
         }else{
             if (rewardService.putReward(reward)>0){
-                mv.addObject("msg","修改成功");
+                mv.addObject("message","修改成功");
                // mv.setViewName("RewardPage");//               TODO 跳转到讨悬赏页面
 
             }else{
-                mv.addObject("msg","修改失败！");
+                mv.addObject("message","修改失败！");
 
 //                TODO 跳转到原修改帖子页面
             }
